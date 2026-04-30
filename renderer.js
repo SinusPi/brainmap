@@ -13,9 +13,11 @@ const renderer = (() => {
   const COLOR_QN      = '#7c3aed';
   const STROKE_NORMAL = 2;
   const STROKE_BUNDLE = 7;
-  const ZOOM_MIN      = 0.1;
-  const ZOOM_MAX      = 5;
-  const ZOOM_FACTOR   = 1.12;
+  const ZOOM_MIN       = 0.1;
+  const ZOOM_MAX       = 5;
+  const ZOOM_FACTOR    = 1.12;
+  const GRID_SIZE_BASE = 28;   // world-unit spacing between dot-grid dots
+  const GRID_SIZE_MIN  = 4;    // minimum rendered grid size (px) before dots vanish
 
   let svg, world, relLayer, nodeLayer, defs, selRectEl;
   let _panX  = 0;
@@ -107,7 +109,7 @@ const renderer = (() => {
   function _applyTransform() {
     world.setAttribute('transform', `translate(${_panX},${_panY}) scale(${_scale})`);
     // Keep CSS dot-grid in sync with pan/zoom
-    const gridSize = Math.max(4, 28 * _scale);
+    const gridSize = Math.max(GRID_SIZE_MIN, GRID_SIZE_BASE * _scale);
     const bgX = ((_panX % gridSize) + gridSize) % gridSize;
     const bgY = ((_panY % gridSize) + gridSize) % gridSize;
     svg.style.backgroundSize     = `${gridSize}px ${gridSize}px`;

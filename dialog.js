@@ -198,7 +198,11 @@ const dialog = (() => {
   }
 
   function _deleteNode() {
-    const id = _currentNodeId;
+    const id  = _currentNodeId;
+    const msg = _callbacks.getDeleteConfirmMessage
+      ? _callbacks.getDeleteConfirmMessage(id)
+      : 'Delete this node?';
+    if (!confirm(msg)) return;
     close();
     _callbacks.onDeleteNode && _callbacks.onDeleteNode(id);
   }

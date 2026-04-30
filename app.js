@@ -53,11 +53,13 @@
       model.updateNode(nodeId, changes);
       renderAll();
     },
-    onDeleteNode(nodeId) {
-      const msg = activeViewId !== null
+    getDeleteConfirmMessage(/*nodeId*/) {
+      return activeViewId !== null
         ? 'Remove this node from the current view?\n(Node is NOT deleted from the main desktop.)'
         : 'Delete this node and all its relations?';
-      if (!confirm(msg)) return;
+    },
+    onDeleteNode(nodeId) {
+      // Confirmation has already been shown by dialog.js via getDeleteConfirmMessage.
       if (activeViewId !== null) {
         model.removeNodeFromView(activeViewId, nodeId);
       } else {
@@ -157,9 +159,10 @@
   // Fires only on empty canvas (nodes call stopPropagation on mousedown)
 
   canvas.addEventListener('mousedown', e => {
-    if (e.button !== 0 || panState || mode !== MODE.NORMAL || spaceDown) return;
-    const pt = renderer.clientToWorld(e.clientX, e.clientY);
-    selRectState = { startX: pt.x, startY: pt.y };
+    if (_shouldStartRubberBandSelection(e)) {
+      const pt = renderer.clientToWorld(e.clientX, e.clientY);
+      selRectState = { startX: pt.x, startY: pt.y };
+    }
   });
 
   // ─── Canvas click → place node or deselect ──────────────────────────────────
@@ -412,6 +415,10 @@
   }
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
+
+  function _shouldStartRubberBandSelection(e) {
+    return e.button === 0 && !panState && mode === MODE.NORMAL && !spaceDown;
+  }
 
   function _startRelFrom(nodeId) {
     if (nodeId !== null) {
