@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrainMap</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
+  <div id="toolbar">
+    <span class="app-title">🧠 BrainMap</span>
+    <button id="btn-add-node"     class="btn btn-primary">+ Node</button>
+    <button id="btn-add-relation" class="btn btn-secondary">+ Relation</button>
+    <span id="status-hint"></span>
+    <button id="btn-clear" class="btn btn-danger" title="Clear everything">🗑 Clear all</button>
+  </div>
+
+  <!-- ── Canvas ──────────────────────────────────────────────────────────── -->
+  <div id="canvas-container">
+
+    <svg id="canvas" tabindex="0" aria-label="BrainMap canvas">
+      <defs id="svg-defs"></defs>
+      <g id="relations-layer"></g>
+      <g id="nodes-layer"></g>
+    </svg>
+
+    <div id="empty-state">
+      <div class="empty-icon">🧠</div>
+      <p>Click <strong>+ Node</strong> to add your first node,<br>
+         then <strong>+ Relation</strong> to connect nodes.</p>
+    </div>
+
+    <!-- HTML tooltip for bundled relations (6+) -->
+    <div id="tooltip" class="hidden" role="tooltip"></div>
+
+  </div>
+
+  <!-- ── Node properties dialog ──────────────────────────────────────────── -->
+  <div id="dialog-overlay" class="hidden" role="dialog" aria-modal="true"
+       aria-labelledby="dialog-title">
+    <div id="dialog">
+
+      <div id="dialog-header">
+        <h2 id="dialog-title">Node Properties</h2>
+        <button id="dialog-close" aria-label="Close dialog">✕</button>
+      </div>
+
+      <div id="dialog-body">
+
+        <div class="form-group">
+          <label for="node-label-input">Label</label>
+          <input type="text" id="node-label-input" placeholder="Node label…" autocomplete="off">
+        </div>
+
+        <div class="form-group">
+          <label>Relations</label>
+          <table id="relations-table" aria-label="Relations for this node">
+            <thead>
+              <tr>
+                <th title="Direction">Dir</th>
+                <th>Type</th>
+                <th>Other node</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="relations-tbody"></tbody>
+          </table>
+          <button id="btn-dialog-add-rel" class="btn btn-secondary btn-sm">+ Add Relation</button>
+        </div>
+
+      </div>
+
+      <div id="dialog-footer">
+        <button id="dialog-delete-node" class="btn btn-danger">Delete Node</button>
+        <button id="dialog-save"        class="btn btn-primary">Save</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="model.js"></script>
+  <script src="renderer.js"></script>
+  <script src="dialog.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
