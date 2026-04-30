@@ -142,7 +142,7 @@
     }
     if (mode === MODE.ADD_REL_TO) {
       if (nodeId === relFromNodeId) {
-        _setHint('A node cannot relate to itself — click a different node.');
+        _setHint('A node cannot relate to itself - click a different node.');
         return;
       }
       const type = prompt('Relation type:', lastRelType);
@@ -183,7 +183,7 @@
     _setSelectedNode(null);
     if (bundleKey !== null) {
       _setSelectedRel('bundle:' + bundleKey);
-      _setHint('Bundle selected — use a node\'s properties dialog to delete individual relations.');
+      _setHint('Bundle selected - use a node properties dialog to delete individual relations.');
     } else {
       _setSelectedRel(relId);
       _setHint('Relation selected — press Delete or Backspace to remove it.');

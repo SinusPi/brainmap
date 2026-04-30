@@ -168,15 +168,15 @@ const renderer = (() => {
         if (r.fromId === nodeA.id) return `${nodeA.label} →[${r.type}]→ ${nodeB.label}`;
         else                       return `${nodeB.label} →[${r.type}]→ ${nodeA.label}`;
       }).join('\n') +
-      '\n\nOpen either node\'s properties to delete individual relations.';
+      '\n\nOpen a node properties dialog to delete individual relations.';
 
     const g = _el('g');
     g.setAttribute('class', 'relation-group bundle');
     g.dataset.bundleKey = pairKey;
 
-    // Native SVG tooltip (accessibility / fallback)
+    // Native SVG tooltip (accessibility / fallback) — shows count + relation list
     const title = _el('title');
-    title.textContent = `${rels.length} relations:\n${tooltipLines}`;
+    title.textContent = tooltipLines;
 
     // Hit target
     const hit = _line(bA.x, bA.y, bB.x, bB.y);
