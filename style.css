@@ -79,7 +79,7 @@ body {
   height: 100%;
   display: block;
   outline: none;
-  cursor: default;
+  cursor: grab;
   background: #f8fafc;
   background-image:
     radial-gradient(circle, #cbd5e1 1px, transparent 1px);
