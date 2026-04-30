@@ -216,7 +216,7 @@
 
   function _setMode(newMode) {
     mode = newMode;
-    canvas.className = '';
+    canvas.setAttribute('class', '');
     switch (newMode) {
       case MODE.ADD_NODE:
         canvas.classList.add('mode-add-node');
