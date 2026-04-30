@@ -8,50 +8,87 @@
 </head>
 <body>
 
-  <!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
+  <!-- ── Toolbar ──────────────────────────────────────────────────────────── -->
   <div id="toolbar">
-    <span class="app-title">🧠 BrainMap</span>
-    <button id="btn-add-node"     class="btn btn-primary">+ Node</button>
-    <button id="btn-add-relation" class="btn btn-secondary">+ Relation</button>
+    <span class="app-title">&#x1F9E0; BrainMap</span>
+    <button id="btn-add-node"     class="btn btn-primary"   title="Add a new node">+ Node</button>
+    <button id="btn-add-relation" class="btn btn-secondary" title="Add a relation between two nodes">+ Relation</button>
     <span id="status-hint"></span>
-    <button id="btn-clear" class="btn btn-danger" title="Clear everything">🗑 Clear all</button>
+    <button id="btn-clear" class="btn btn-danger" title="Clear all nodes (or current view)">&#x1F5D1; Clear</button>
   </div>
 
-  <!-- ── Canvas ──────────────────────────────────────────────────────────── -->
-  <div id="canvas-container">
+  <!-- ── Main area (sidebar + canvas) ─────────────────────────────────────── -->
+  <div id="main-area">
 
-    <svg id="canvas" tabindex="0" aria-label="BrainMap canvas">
-      <defs id="svg-defs"></defs>
-      <g id="relations-layer"></g>
-      <g id="nodes-layer"></g>
-    </svg>
+    <!-- ── Sidebar ─────────────────────────────────────────────────────── -->
+    <div id="sidebar">
+      <div id="sidebar-header">
+        <span class="sidebar-title">Views</span>
+        <button id="btn-toggle-sidebar" title="Collapse sidebar">&#x25C4;</button>
+      </div>
 
-    <div id="empty-state">
-      <div class="empty-icon">🧠</div>
-      <p>Click <strong>+ Node</strong> to add your first node,<br>
-         then <strong>+ Relation</strong> to connect nodes.</p>
+      <div id="views-list"></div>
+
+      <div id="view-actions" class="hidden">
+        <button id="btn-view-add-nodes" class="btn btn-secondary btn-sm btn-full">+ Add / Remove Nodes</button>
+        <button id="btn-add-query-node" class="btn btn-secondary btn-sm btn-full">+ Query Node</button>
+      </div>
+
+      <div id="sidebar-footer">
+        <button id="btn-new-view" class="btn btn-primary btn-sm btn-full">+ New View</button>
+      </div>
     </div>
 
-    <!-- HTML tooltip for bundled relations (6+) -->
-    <div id="tooltip" class="hidden" role="tooltip"></div>
+    <!-- ── Canvas container ────────────────────────────────────────────── -->
+    <div id="canvas-container">
+      <svg id="canvas" tabindex="0" aria-label="BrainMap canvas">
+        <defs id="svg-defs"></defs>
+        <g id="world">
+          <g id="relations-layer"></g>
+          <g id="nodes-layer"></g>
+          <rect id="selection-rect" class="selection-rect hidden"
+                x="0" y="0" width="0" height="0"/>
+        </g>
+      </svg>
 
-  </div>
+      <div id="empty-state">
+        <div class="empty-icon">&#x1F9E0;</div>
+        <p>Click <strong>+ Node</strong> to add your first node,<br>
+           then <strong>+ Relation</strong> to connect nodes.</p>
+      </div>
 
-  <!-- ── Node properties dialog ──────────────────────────────────────────── -->
+      <div id="tooltip" class="hidden" role="tooltip"></div>
+      <div id="view-badge" class="hidden" aria-live="polite"></div>
+    </div>
+
+  </div><!-- #main-area -->
+
+  <!-- ── Node properties dialog ─────────────────────────────────────────── -->
   <div id="dialog-overlay" class="hidden" role="dialog" aria-modal="true"
        aria-labelledby="dialog-title">
     <div id="dialog">
-
       <div id="dialog-header">
         <h2 id="dialog-title">Node Properties</h2>
-        <button id="dialog-close" aria-label="Close dialog">✕</button>
+        <button id="dialog-close" aria-label="Close dialog">&#x2715;</button>
       </div>
 
       <div id="dialog-body">
-
         <div class="form-group">
           <label for="node-label-input">Label</label>
-          <input type="text" id="node-label-input" placeholder="Node label…" autocomplete="off">
+          <input type="text" id="node-label-input" placeholder="Node label&#x2026;" autocomplete="off">
+        </div>
+
+        <div class="form-group">
+          <label>Custom Fields
+            <span class="label-hint">(used by query nodes to match)</span>
+          </label>
+          <table id="fields-table" aria-label="Custom fields">
+            <thead>
+              <tr><th>Field</th><th>Value</th><th></th></tr>
+            </thead>
+            <tbody id="fields-tbody"></tbody>
+          </table>
+          <button id="btn-add-field" class="btn btn-secondary btn-sm">+ Add Field</button>
         </div>
 
         <div class="form-group">
@@ -59,9 +96,10 @@
           <table id="relations-table" aria-label="Relations for this node">
             <thead>
               <tr>
-                <th title="Direction">Dir</th>
+                <th title="Direction from this node">Dir</th>
                 <th>Type</th>
                 <th>Other node</th>
+                <th title="Arrow (directional) vs line (bidirectional)">&#x2194;/&#x2192;</th>
                 <th></th>
               </tr>
             </thead>
@@ -69,20 +107,63 @@
           </table>
           <button id="btn-dialog-add-rel" class="btn btn-secondary btn-sm">+ Add Relation</button>
         </div>
-
       </div>
 
       <div id="dialog-footer">
         <button id="dialog-delete-node" class="btn btn-danger">Delete Node</button>
         <button id="dialog-save"        class="btn btn-primary">Save</button>
       </div>
+    </div>
+  </div>
 
+  <!-- ── Query Node dialog ──────────────────────────────────────────────── -->
+  <div id="qn-dialog-overlay" class="hidden" role="dialog" aria-modal="true">
+    <div id="qn-dialog">
+      <div class="dlg-header">
+        <h2>Query Node</h2>
+        <button id="qn-dialog-close" aria-label="Close">&#x2715;</button>
+      </div>
+      <div class="dlg-body">
+        <div class="form-group">
+          <label for="qn-name-input">Name</label>
+          <input type="text" id="qn-name-input" placeholder="e.g. Kings, My Tasks&#x2026;" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>Match nodes where&#x2026;</label>
+          <p class="hint-text">
+            Use <code>label</code> to match by node name (contains check).
+            Any other key matches the node&#x2019;s custom field exactly.
+          </p>
+          <div id="qn-filters"></div>
+          <button id="btn-add-qn-filter" class="btn btn-secondary btn-sm">+ Add Filter</button>
+        </div>
+      </div>
+      <div class="dlg-footer">
+        <button id="qn-dialog-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="qn-dialog-save"   class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Add / Remove Nodes dialog ─────────────────────────────────────── -->
+  <div id="add-nodes-dialog-overlay" class="hidden" role="dialog" aria-modal="true">
+    <div id="add-nodes-dialog">
+      <div class="dlg-header">
+        <h2>Add / Remove Nodes from View</h2>
+        <button id="add-nodes-dialog-close" aria-label="Close">&#x2715;</button>
+      </div>
+      <div id="add-nodes-list"></div>
+      <div class="dlg-footer">
+        <button id="add-nodes-cancel"  class="btn btn-secondary">Cancel</button>
+        <button id="add-nodes-confirm" class="btn btn-primary">Apply</button>
+      </div>
     </div>
   </div>
 
   <script src="model.js"></script>
   <script src="renderer.js"></script>
   <script src="dialog.js"></script>
+  <script src="views.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
