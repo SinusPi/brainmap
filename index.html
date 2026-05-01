@@ -13,6 +13,7 @@
     <span class="app-title">🧠 BrainMap</span>
     <button id="btn-add-node"     class="btn btn-primary">+ Node</button>
     <button id="btn-add-relation" class="btn btn-secondary">+ Relation</button>
+    <button id="btn-zoom-extents" class="btn btn-secondary" title="Zoom to fit all nodes">⊡ Fit all</button>
     <span id="status-hint"></span>
     <button id="btn-clear" class="btn btn-danger" title="Clear everything">🗑 Clear all</button>
   </div>
@@ -22,8 +23,10 @@
 
     <svg id="canvas" tabindex="0" aria-label="BrainMap canvas">
       <defs id="svg-defs"></defs>
-      <g id="relations-layer"></g>
-      <g id="nodes-layer"></g>
+      <g id="viewport">
+        <g id="relations-layer"></g>
+        <g id="nodes-layer"></g>
+      </g>
     </svg>
 
     <div id="empty-state">

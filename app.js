@@ -18,14 +18,28 @@
   let relFromNodeId  = null;  // source node id while in ADD_REL_TO mode
   let lastRelType    = 'related-to';
 
-  // Drag state
+  // Node drag state
   let dragNodeId = null;
   let dragOffX   = 0;
   let dragOffY   = 0;
 
+  // Pan/zoom state
+  let panX  = 0;
+  let panY  = 0;
+  let scale = 1;
+
+  // Canvas pan drag state
+  let isPanning     = false;
+  let _panStartCX   = 0;
+  let _panStartCY   = 0;
+  let _panStartPanX = 0;
+  let _panStartPanY = 0;
+  let _panMoved     = false;
+
   const canvas     = document.getElementById('canvas');
   const emptyState = document.getElementById('empty-state');
   const hint       = document.getElementById('status-hint');
+  const _viewport  = canvas.querySelector('#viewport');
 
   // ─── Boot ───────────────────────────────────────────────────────────────────
 
@@ -77,10 +91,13 @@
     }
   });
 
+  document.getElementById('btn-zoom-extents').addEventListener('click', _zoomExtents);
+
   // ─── Canvas background click ─────────────────────────────────────────────────
   // Node and relation handlers call stopPropagation(), so this only fires
   // when the user clicks empty SVG space.
   canvas.addEventListener('click', e => {
+    if (_panMoved) { _panMoved = false; return; }
     if (mode === MODE.ADD_NODE) {
       const pt    = _svgPt(e);
       const label = prompt('Node label:', 'Node');
@@ -96,6 +113,34 @@
       renderAll();
     }
   });
+
+  // ─── Canvas pan (mousedown on empty canvas) ─────────────────────────────────
+
+  canvas.addEventListener('mousedown', e => {
+    if (e.button !== 0 || dragNodeId !== null) return;
+    isPanning     = true;
+    _panMoved     = false;
+    _panStartCX   = e.clientX;
+    _panStartCY   = e.clientY;
+    _panStartPanX = panX;
+    _panStartPanY = panY;
+  });
+
+  // ─── Mousewheel zoom ─────────────────────────────────────────────────────────
+
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const r      = canvas.getBoundingClientRect();
+    const sx     = e.clientX - r.left;
+    const sy     = e.clientY - r.top;
+    const wx     = (sx - panX) / scale;
+    const wy     = (sy - panY) / scale;
+    const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+    scale = Math.max(0.1, Math.min(8, scale * factor));
+    panX  = sx - wx * scale;
+    panY  = sy - wy * scale;
+    _applyTransform();
+  }, { passive: false });
 
   // ─── Keyboard ───────────────────────────────────────────────────────────────
 
@@ -191,16 +236,35 @@
     renderAll();
   }
 
-  // ─── Drag (document-level) ───────────────────────────────────────────────────
+  // ─── Drag and pan (document-level) ──────────────────────────────────────────
 
   document.addEventListener('mousemove', e => {
-    if (dragNodeId === null) return;
-    const pt = _svgPt(e);
-    model.updateNode(dragNodeId, { x: pt.x - dragOffX, y: pt.y - dragOffY });
-    renderAll();
+    if (dragNodeId !== null) {
+      const pt = _svgPt(e);
+      model.updateNode(dragNodeId, { x: pt.x - dragOffX, y: pt.y - dragOffY });
+      renderAll();
+      return;
+    }
+    if (isPanning) {
+      const dx = e.clientX - _panStartCX;
+      const dy = e.clientY - _panStartCY;
+      if (!_panMoved && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+        _panMoved = true;
+        canvas.style.cursor = 'grabbing';
+      }
+      if (_panMoved) {
+        panX = _panStartPanX + dx;
+        panY = _panStartPanY + dy;
+        _applyTransform();
+      }
+    }
   });
 
-  document.addEventListener('mouseup', () => { dragNodeId = null; });
+  document.addEventListener('mouseup', () => {
+    dragNodeId = null;
+    isPanning  = false;
+    canvas.style.cursor = '';
+  });
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -251,7 +315,44 @@
 
   function _svgPt(e) {
     const r = canvas.getBoundingClientRect();
-    return { x: e.clientX - r.left, y: e.clientY - r.top };
+    return {
+      x: (e.clientX - r.left - panX) / scale,
+      y: (e.clientY - r.top  - panY) / scale
+    };
+  }
+
+  function _applyTransform() {
+    _viewport.setAttribute('transform', `translate(${panX},${panY}) scale(${scale})`);
+    const DOT_SPACING = 28;   // must match background-size in style.css
+    const dotSize = DOT_SPACING * scale;
+    const bgX = ((panX % dotSize) + dotSize) % dotSize;
+    const bgY = ((panY % dotSize) + dotSize) % dotSize;
+    canvas.style.backgroundSize     = `${dotSize}px ${dotSize}px`;
+    canvas.style.backgroundPosition = `${bgX}px ${bgY}px`;
+  }
+
+  function _zoomExtents() {
+    const ZOOM_EXTENTS_PADDING = 60;
+    const nodes = model.nodes;
+    if (nodes.length === 0) return;
+    const hw = renderer.NODE_W / 2;
+    const hh = renderer.NODE_H / 2;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const n of nodes) {
+      minX = Math.min(minX, n.x - hw);
+      minY = Math.min(minY, n.y - hh);
+      maxX = Math.max(maxX, n.x + hw);
+      maxY = Math.max(maxY, n.y + hh);
+    }
+    minX -= ZOOM_EXTENTS_PADDING; minY -= ZOOM_EXTENTS_PADDING;
+    maxX += ZOOM_EXTENTS_PADDING; maxY += ZOOM_EXTENTS_PADDING;
+    const r = canvas.getBoundingClientRect();
+    const contentW = maxX - minX;
+    const contentH = maxY - minY;
+    scale = Math.min(r.width / contentW, r.height / contentH, 2);
+    panX  = (r.width  - contentW * scale) / 2 - minX * scale;
+    panY  = (r.height - contentH * scale) / 2 - minY * scale;
+    _applyTransform();
   }
 
   function renderAll() {
